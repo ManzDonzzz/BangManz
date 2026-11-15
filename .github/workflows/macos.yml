@@ -21,7 +21,7 @@ jobs:
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
           sudo brew services start tailscale
           sleep 10
-          sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=macos-rdp --accept-routes
+          sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=macos-rdp --accept-routes
           echo "===== INI YANG LU COPY ====="
           echo "IP TAILSCALE:"
           /opt/homebrew/bin/tailscale ip -4
