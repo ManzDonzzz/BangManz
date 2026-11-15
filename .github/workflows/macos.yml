@@ -5,16 +5,25 @@ jobs:
   rdp:
     runs-on: macos-latest
     steps:
-      - name: Setup MacOS RustDesk
+      - name: Setup MacOS RustDesk - PAKSA NYALA
         run: |
           brew install --cask rustdesk firefox visual-studio-code || true
+          # Matikan dulu kalo ada yang nyangkut
+          pkill -f RustDesk || true
+          sleep 2
+          # Nyalain jadi SERVICE, bukan cuma open biasa
+          /Applications/RustDesk.app/Contents/MacOS/RustDesk --service &
+          sleep 8
           open -a RustDesk || true
           sleep 8
-          # Set password jadi 123456
-          defaults write com.carriez.RustDesk password -string "123456" || true
-          echo "RustDesk jalan..."
+          # Set password
+          /Applications/RustDesk.app/Contents/MacOS/RustDesk --password 123456 || true
+          echo "Cek RustDesk jalan apa gak:"
+          ps aux | grep -i rustdesk | grep -v grep || echo "GAK JALAN!"
+          echo "Cek port 21118:"
+          lsof -i :21118 || netstat -an | grep 21118 || echo "PORT MASIH KETUTUP!"
 
-      - name: Tailscale + Liatin ID RustDesk
+      - name: Tailscale + ID RustDesk
         run: |
           brew install tailscale
           export PATH="/opt/homebrew/bin:$PATH"
@@ -23,14 +32,13 @@ jobs:
           sleep 10
           sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=macos-rdp --accept-routes
           echo "===== INI YANG LU COPY ====="
-          echo "IP TAILSCALE:"
           /opt/homebrew/bin/tailscale ip -4
-          echo ""
-          echo "ID RUSTDESK:"
-          cat ~/Library/Application\ Support/RustDesk/RustDesk.toml 2>/dev/null | grep -i "id" || cat ~/.config/rustdesk/RustDesk.toml 2>/dev/null | grep -i "id" || echo "Cek di bawah, ID nya ada di file RustDesk2.toml"
-          cat ~/Library/Application\ Support/RustDesk/RustDesk2.toml 2>/dev/null | grep -i "id" || true
-          echo "PASSWORD RUSTDESK: 123456"
-          echo "============================"
+          echo "--- ID RUSTDESK ASLI ---"
+          # Cari file ID nya dimana aja
+          find ~/Library -name "*.toml" 2>/dev/null | head -20
+          cat ~/Library/Application\ Support/RustDesk/RustDesk2.toml 2>/dev/null || cat ~/Library/Application\ Support/com.carriez.RustDesk/config/RustDesk2.toml 2>/dev/null || echo "File ID belum kebikin, pake IP aja"
+          echo "PASSWORD: 123456"
+          echo "=========================="
 
       - name: Tahan 6 Jam
         run: sleep 21600
