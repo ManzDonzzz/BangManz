@@ -1,4 +1,4 @@
-name: 4 - MacOS VNC
+name: MacOS
 on:
   workflow_dispatch:
 jobs:
