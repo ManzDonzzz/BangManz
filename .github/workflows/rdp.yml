@@ -1,59 +1,29 @@
-name: Pilih OS RDP
-
+name: 1 - PILIH OS
 on:
   workflow_dispatch:
     inputs:
-      os:
-        description: 'Pilih OS yang mau dipake'
+      pilih_os:
+        description: 'Mau jalanin yang mana?'
         required: true
-        default: 'windows-latest'
+        default: 'windows'
         type: choice
         options:
-          - windows-latest
-          - ubuntu-latest
-          - macos-latest
-
+          - windows
+          - linux
+          - macos
 jobs:
-  rdp:
-    runs-on: ${{ inputs.os }}
-
+  pemicu:
+    runs-on: ubuntu-latest
     steps:
-      # ============ KHUSUS WINDOWS ============
-      - name: Setup Windows RDP
-        if: inputs.os == 'windows-latest'
+      - name: Pemicu Workflow Lain
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString "123456" -AsPlainText -Force)
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          echo "Windows RDP AKTIF - User: runneradmin Pass: 123456 Port: 3389"
-
-      # ============ KHUSUS LINUX (UBUNTU / DEBIAN) ============
-      - name: Setup Linux RDP (XFCE + Firefox + Code OSS)
-        if: inputs.os == 'ubuntu-latest'
-        run: |
-          sudo apt update -y
-          sudo apt install -y xfce4 xfce4-goodies xrdp firefox code-oss htop || sudo apt install -y xfce4 xrdp firefox
-          echo "startxfce4" > ~/.xsession
-          echo "runneradmin:123456" | sudo chpasswd || echo "runner:123456" | sudo chpasswd
-          sudo service xrdp start
-          echo "Linux RDP AKTIF - User: runner Pass: 123456 Port: 3389"
-
-      # ============ KHUSUS MACOS (VNC) ============
-      - name: Setup MacOS VNC
-        if: inputs.os == 'macos-latest'
-        run: |
-          echo "123456" | sudo -S /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw 123456 -restart -agent -privs -all
-          brew install --cask firefox visual-studio-code || true
-          echo "MacOS VNC AKTIF - Pass: 123456 Port: 5900 - Pake VNC Viewer, BUKAN Windows App"
-
-      # ============ TAILSCALE BUAT SEMUA OS ============
-      - name: Install Tailscale
-        run: |
-          curl -fsSL https://tailscale.com/install.sh | sh
-          sudo tailscaled &
-          sleep 3
-          sudo tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=rdp-${{ inputs.os }} || true
-          sudo tailscale ip -4 || tailscale ip -4
-
-      - name: Tahan 6 Jam
-        run: sleep 21600
+          if [ "${{ inputs.pilih_os }}" == "windows" ]; then
+            gh workflow run windows.yml
+          elif [ "${{ inputs.pilih_os }}" == "linux" ]; then
+            gh workflow run linux.yml
+          elif [ "${{ inputs.pilih_os }}" == "macos" ]; then
+            gh workflow run macos.yml
+          fi
+          echo "Udah dipicu! Cek tab Actions, workflow yang lu pilih udah jalan sendiri."
