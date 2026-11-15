@@ -60,7 +60,7 @@ jobs:
           curl -fsSL https://tailscale.com/install.sh | sh
           tailscaled &
           sleep 3
-          tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=debian-kde-rdp --accept-routes --accept-dns=false || true
+          tailscale up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=debian-kde-rdp --accept-routes --accept-dns=false || true
           echo "=== TAILSCALE IP ==="
           tailscale ip -4
           echo "=== USER : rdpuser | PASS : 123456 ==="
