@@ -1,1 +1,23 @@
+name: 4 - MacOS VNC
+on:
+  workflow_dispatch:
+jobs:
+  rdp:
+    runs-on: macos-latest
+    steps:
+      - name: Setup MacOS VNC
+        run: |
+          echo "123456" | sudo -S /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw 123456 -restart -agent -privs -all
+          brew install --cask firefox visual-studio-code || true
+          echo "MacOS VNC AKTIF Pass: 123456 Port: 5900"
 
+      - name: Tailscale MacOS - Cara MacOS
+        run: |
+          brew install tailscale
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          export PATH="/opt/homebrew/bin:$PATH"
+          sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=macos-rdp
+          /opt/homebrew/bin/tailscale ip -4
+
+      - name: Tahan 6 Jam
+        run: sleep 21600
