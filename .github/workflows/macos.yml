@@ -1,28 +1,33 @@
-name: MacOS
+name: 4 - MacOS VNC
 on:
   workflow_dispatch:
 jobs:
   rdp:
     runs-on: macos-latest
     steps:
-      - name: Setup MacOS VNC
+      - name: Setup MacOS RustDesk - ANTI ITEM
         run: |
-          echo "123456" | sudo -S /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw 123456 -restart -agent -privs -all
-          brew install --cask firefox visual-studio-code || true
-          echo "MacOS VNC AKTIF Pass: 123456 Port: 5900"
+          brew install --cask rustdesk firefox visual-studio-code || true
+          # Set password RustDesk jadi 123456
+          echo "123456" | sudo -S /Applications/RustDesk.app/Contents/MacOS/RustDesk --password 123456 || true
+          open -a RustDesk || true
+          sleep 10
+          echo "RustDesk udah jalan, cek ID nya di log Tailscale di bawah"
 
       - name: Tailscale MacOS - FIX
         run: |
           brew install tailscale
           export PATH="/opt/homebrew/bin:$PATH"
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
-          # INI YANG KURANG TADI, DAEMON NYA HARUS DINYALAIN DULU
           sudo brew services start tailscale
           sleep 10
           sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=macos-rdp --accept-routes
           echo "=== IP TAILSCALE LU ==="
           /opt/homebrew/bin/tailscale ip -4
-          echo "Connect pake VNC Viewer ke IP di atas, Pass 123456"
+          echo "=== CARA CONNECT ==="
+          echo "1. Buka RustDesk di HP lu"
+          echo "2. Masukin IP Tailscale di atas"
+          echo "3. Pass: 123456"
 
       - name: Tahan 6 Jam
         run: sleep 21600
