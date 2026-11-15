@@ -1,33 +1,36 @@
-name: 4 - MacOS VNC
+name: MacOS
 on:
   workflow_dispatch:
 jobs:
   rdp:
     runs-on: macos-latest
     steps:
-      - name: Setup MacOS RustDesk - ANTI ITEM
+      - name: Setup MacOS RustDesk
         run: |
           brew install --cask rustdesk firefox visual-studio-code || true
-          # Set password RustDesk jadi 123456
-          echo "123456" | sudo -S /Applications/RustDesk.app/Contents/MacOS/RustDesk --password 123456 || true
           open -a RustDesk || true
-          sleep 10
-          echo "RustDesk udah jalan, cek ID nya di log Tailscale di bawah"
+          sleep 8
+          # Set password jadi 123456
+          defaults write com.carriez.RustDesk password -string "123456" || true
+          echo "RustDesk jalan..."
 
-      - name: Tailscale MacOS - FIX
+      - name: Tailscale + Liatin ID RustDesk
         run: |
           brew install tailscale
           export PATH="/opt/homebrew/bin:$PATH"
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
           sudo brew services start tailscale
           sleep 10
-          sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=macos-rdp --accept-routes
-          echo "=== IP TAILSCALE LU ==="
+          sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=macos-rdp --accept-routes
+          echo "===== INI YANG LU COPY ====="
+          echo "IP TAILSCALE:"
           /opt/homebrew/bin/tailscale ip -4
-          echo "=== CARA CONNECT ==="
-          echo "1. Buka RustDesk di HP lu"
-          echo "2. Masukin IP Tailscale di atas"
-          echo "3. Pass: 123456"
+          echo ""
+          echo "ID RUSTDESK:"
+          cat ~/Library/Application\ Support/RustDesk/RustDesk.toml 2>/dev/null | grep -i "id" || cat ~/.config/rustdesk/RustDesk.toml 2>/dev/null | grep -i "id" || echo "Cek di bawah, ID nya ada di file RustDesk2.toml"
+          cat ~/Library/Application\ Support/RustDesk/RustDesk2.toml 2>/dev/null | grep -i "id" || true
+          echo "PASSWORD RUSTDESK: 123456"
+          echo "============================"
 
       - name: Tahan 6 Jam
         run: sleep 21600
