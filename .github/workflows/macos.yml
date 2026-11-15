@@ -19,7 +19,7 @@ jobs:
           # INI YANG KURANG TADI, DAEMON NYA HARUS DINYALAIN DULU
           sudo brew services start tailscale
           sleep 10
-          sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=macos-rdp --accept-routes
+          sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=macos-rdp --accept-routes
           echo "=== IP TAILSCALE LU ==="
           /opt/homebrew/bin/tailscale ip -4
           echo "Connect pake VNC Viewer ke IP di atas, Pass 123456"
