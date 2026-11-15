@@ -11,13 +11,18 @@ jobs:
           brew install --cask firefox visual-studio-code || true
           echo "MacOS VNC AKTIF Pass: 123456 Port: 5900"
 
-      - name: Tailscale MacOS - Cara MacOS
+      - name: Tailscale MacOS - FIX
         run: |
           brew install tailscale
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH
           export PATH="/opt/homebrew/bin:$PATH"
-          sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=macos-rdp
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          # INI YANG KURANG TADI, DAEMON NYA HARUS DINYALAIN DULU
+          sudo brew services start tailscale
+          sleep 10
+          sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=macos-rdp --accept-routes
+          echo "=== IP TAILSCALE LU ==="
           /opt/homebrew/bin/tailscale ip -4
+          echo "Connect pake VNC Viewer ke IP di atas, Pass 123456"
 
       - name: Tahan 6 Jam
         run: sleep 21600
