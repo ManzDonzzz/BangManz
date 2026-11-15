@@ -1,0 +1,33 @@
+name: RDP Gue
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+    timeout-minutes: 360
+    steps:
+      - name: Install Tailscale
+        run: |
+          Invoke-WebRequest -Uri https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe -OutFile tailscale-setup.exe
+          Start-Process -FilePath .\tailscale-setup.exe -ArgumentList "/quiet" -Wait
+          Start-Sleep -Seconds 20
+
+      - name: Login Tailscale
+        run: |
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname rdp-BangManz
+
+      - name: Aktifin RDP dan Bikin User
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          $pass = ConvertTo-SecureString "${{ secrets.RDP_PASSWORD }}" -AsPlainText -Force
+          New-LocalUser -Name "BangManz" -Password $pass -FullName "BangManz" -Description "RDP User"
+          Add-LocalGroupMember -Group "Administrators" -Member "BangManz"
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "BangManz"
+
+      - name: Tahan 6 Jam
+        run: |
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+          Start-Sleep -Seconds 21600
