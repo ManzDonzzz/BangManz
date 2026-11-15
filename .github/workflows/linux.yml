@@ -1,1 +1,75 @@
+name: Linux
 
+on:
+  workflow_dispatch:
+
+jobs:
+  rdp:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+      options: --privileged
+
+    steps:
+      - name: Update & Install Base
+        run: |
+          apt update && apt upgrade -y
+          apt install -y sudo curl wget gnupg2 software-properties-common apt-transport-https ca-certificates lsb-release dbus-x11 x11-xserver-utils
+
+      - name: Install KDE Plasma + XRDP + Tools
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt install -y kde-plasma-desktop sddm xrdp xorgxrdp
+          apt install -y firefox-esr htop neofetch git nano unzip zip
+          # Biar XRDP jalan di KDE
+          echo "startplasma-x11" > /etc/skel/.xsession
+          echo "startplasma-x11" > /root/.xsession
+          sed -i 's/^port=3389/port=3389/' /etc/xrdp/xrdp.ini
+          adduser xrdp ssl-cert || true
+          systemctl enable xrdp || service xrdp start || true
+
+      - name: Install Code OSS (VS Code versi Open Source)
+        run: |
+          wget -qO - https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+          apt update
+          apt install -y code-oss || apt install -y code || echo "code-oss gagal, coba manual"
+
+      - name: Install PiApps
+        run: |
+          apt install -y git
+          git clone https://github.com/Botspot/pi-apps /home/pi-apps || git clone https://github.com/Botspot/pi-apps /root/pi-apps
+          chmod +x /root/pi-apps/install || chmod +x /home/pi-apps/install
+          # PiApps aslinya buat Raspberry Pi, tapi di Debian x86 masih bisa jalan installernya
+          # Kalau mau install langsung:
+          # /root/pi-apps/install
+
+      - name: Buat User RDP
+        run: |
+          useradd -m -s /bin/bash rdpuser || echo "user sudah ada"
+          echo "rdpuser:123456" | chpasswd
+          usermod -aG sudo rdpuser
+          echo "rdpuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+          mkdir -p /home/rdpuser/.config
+          chown -R rdpuser:rdpuser /home/rdpuser
+          echo "startplasma-x11" > /home/rdpuser/.xsession
+          chown rdpuser:rdpuser /home/rdpuser/.xsession
+
+      - name: Install Tailscale (biar bisa RDP dari HP)
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+          tailscaled &
+          sleep 3
+          tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=debian-kde-rdp --accept-routes --accept-dns=false || true
+          echo "=== TAILSCALE IP ==="
+          tailscale ip -4
+          echo "=== USER : rdpuser | PASS : 123456 ==="
+
+      - name: Jalankan XRDP & Tahan 6 Jam
+        run: |
+          service xrdp start || /etc/init.d/xrdp start
+          service dbus start || true
+          echo "RDP JALAN! Connect via Tailscale IP port 3389"
+          echo "User: rdpuser Pass: 123456"
+          # Biar gak mati, tahan 6 jam
+          sleep 21600
