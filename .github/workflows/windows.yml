@@ -12,21 +12,63 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe -OutFile tailscale-setup.exe
           Start-Process -FilePath .\tailscale-setup.exe -ArgumentList "/quiet" -Wait
-          Start-Sleep -Seconds 20
+          Start-Sleep -Seconds 30
 
       - name: Login Tailscale
         run: |
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname rdp-BangManz
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname rdp-BangManz --accept-routes
+          Start-Sleep -Seconds 10
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+
       - name: Aktifin RDP dan Bikin User
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          if (Get-LocalUser -Name "BangManz" -ErrorAction SilentlyContinue) {
+            Remove-LocalUser -Name "BangManz"
+            Start-Sleep -Seconds 2
+          }
           $pass = ConvertTo-SecureString "${{ secrets.RDP_PASSWORD }}" -AsPlainText -Force
-          New-LocalUser -Name "BangManz" -Password $pass -FullName "BangManz" -Description "RDP User"
+          New-LocalUser -Name "BangManz" -Password $pass -FullName "BangManz" -Description "RDP User" -PasswordNeverExpires
           Add-LocalGroupMember -Group "Administrators" -Member "BangManz"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "BangManz"
+
+      - name: Auto Install StarDesk
+        run: |
+          Write-Host "Download StarDesk..."
+          # Download dari official stardesk.net
+          try {
+            Invoke-WebRequest -Uri "https://www.stardesk.net/download/StarDesk.exe" -OutFile "$env:TEMP\StarDesk.exe" -UseBasicParsing
+          } catch {
+            Write-Host "Link 1 gagal, coba link cadangan..."
+            Invoke-WebRequest -Uri "https://download.stardesk.net/StarDesk.exe" -OutFile "$env:TEMP\StarDesk.exe" -UseBasicParsing
+          }
+          
+          Write-Host "Install StarDesk silent..."
+          Start-Process -FilePath "$env:TEMP\StarDesk.exe" -ArgumentList "/S" -Wait
+          Start-Sleep -Seconds 20
+          
+          # Coba jalanin StarDesk nya
+          $stardeskPath = Get-ChildItem -Path "C:\Program Files" -Recurse -Filter "StarDesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($stardeskPath) {
+            Write-Host "StarDesk ketemu di: $($stardeskPath.FullName)"
+            Start-Process -FilePath $stardeskPath.FullName
+          } else {
+            Write-Host "Cek di Program Files (x86)..."
+            $stardeskPath2 = Get-ChildItem -Path "C:\Program Files (x86)" -Recurse -Filter "StarDesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($stardeskPath2) {
+              Start-Process -FilePath $stardeskPath2.FullName
+            }
+          }
+          Start-Sleep -Seconds 10
+          Write-Host "=== STARDESK UDAH KE-INSTALL ==="
+          Write-Host "Tinggal login pake Google yang sama di HP lu"
 
       - name: Tahan 6 Jam
         run: |
           & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
-          Start-Sleep -Seconds 21600
+          Write-Host "IP Tailscale di atas, StarDesk udah ke-install"
+          for ($i=0; $i -lt 36; $i++) {
+            Write-Host "Masih jalan... menit ke $($i*10)"
+            Start-Sleep -Seconds 600
+          }
