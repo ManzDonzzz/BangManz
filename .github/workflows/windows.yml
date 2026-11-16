@@ -38,10 +38,10 @@ jobs:
           Write-Host "Download StarDesk..."
           # Download dari official stardesk.net
           try {
-            Invoke-WebRequest -Uri "https://www.stardesk.net/download/StarDesk.exe" -OutFile "$env:TEMP\StarDesk.exe" -UseBasicParsing
+            Invoke-WebRequest -Uri "https://api.stardesk.net/api/v1/release/dl/1?channel=official" -OutFile "$env:TEMP\StarDesk-1.6.0.exe" -UseBasicParsing
           } catch {
             Write-Host "Link 1 gagal, coba link cadangan..."
-            Invoke-WebRequest -Uri "https://download.stardesk.net/StarDesk.exe" -OutFile "$env:TEMP\StarDesk.exe" -UseBasicParsing
+            Invoke-WebRequest -Uri "https://api.stardesk.net/api/v1/release/dl/1?channel=official" -OutFile "$env:TEMP\StarDesk-1.6.0.exe" -UseBasicParsing
           }
           
           Write-Host "Install StarDesk silent..."
