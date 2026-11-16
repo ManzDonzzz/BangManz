@@ -33,38 +33,44 @@ jobs:
           Add-LocalGroupMember -Group "Administrators" -Member "BangManz"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "BangManz"
 
-      - name: Auto Install StarDesk
+      - name: StarDesk
         run: |
           Write-Host "Download StarDesk..."
-          # Download dari official stardesk.net
-          try {
-            Invoke-WebRequest -Uri "https://api.stardesk.net/api/v1/release/dl/1?channel=official" -OutFile "$env:TEMP\StarDesk-1.6.0.exe" -UseBasicParsing
-          } catch {
-            Write-Host "Link 1 gagal, coba link cadangan..."
-            Invoke-WebRequest -Uri "https://api.stardesk.net/api/v1/release/dl/1?channel=official" -OutFile "$env:TEMP\StarDesk-1.6.0.exe" -UseBasicParsing
+          $installer = "$env:TEMP\StarDesk.exe"
+          
+          # Pake link beneran dari lu
+          Invoke-WebRequest -Uri "https://api.stardesk.net/api/v1/release/dl/1?channel=official" -OutFile $installer -UseBasicParsing
+          
+          # Cek beneran ke-download apa enggak
+          if (Test-Path $installer) {
+            Write-Host "Ke-download! Ukuran: $((Get-Item $installer).Length) bytes"
+          } else {
+            Write-Host "GAGAL DOWNLOAD!"
+            exit 1
           }
           
           Write-Host "Install StarDesk silent..."
-          Start-Process -FilePath "$env:TEMP\StarDesk.exe" -ArgumentList "/S" -Wait
+          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
           Start-Sleep -Seconds 20
           
           # Coba jalanin StarDesk nya
           $stardeskPath = Get-ChildItem -Path "C:\Program Files" -Recurse -Filter "StarDesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $stardeskPath) {
+            $stardeskPath = Get-ChildItem -Path "C:\Program Files (x86)" -Recurse -Filter "StarDesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $stardeskPath) {
+            $stardeskPath = Get-ChildItem -Path "$env:LOCALAPPDATA" -Recurse -Filter "StarDesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          
           if ($stardeskPath) {
             Write-Host "StarDesk ketemu di: $($stardeskPath.FullName)"
             Start-Process -FilePath $stardeskPath.FullName
           } else {
-            Write-Host "Cek di Program Files (x86)..."
-            $stardeskPath2 = Get-ChildItem -Path "C:\Program Files (x86)" -Recurse -Filter "StarDesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($stardeskPath2) {
-              Start-Process -FilePath $stardeskPath2.FullName
-            }
+            Write-Host "StarDesk gak ketemu, tapi install udah jalan"
           }
           Start-Sleep -Seconds 10
           Write-Host "=== STARDESK UDAH KE-INSTALL ==="
-          Write-Host "Tinggal login pake Google yang sama di HP lu"
-
-      - name: Tahan 6 Jam
+      - name: Sesi Online
         run: |
           & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
           Write-Host "IP Tailscale di atas, StarDesk udah ke-install"
