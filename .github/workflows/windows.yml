@@ -76,4 +76,3 @@ jobs:
           }
           Start-Sleep -Seconds 10
           Write-Host "=== STARDESK UDAH KE-INSTALL ==="
-         }
