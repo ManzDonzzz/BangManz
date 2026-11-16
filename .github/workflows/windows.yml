@@ -32,7 +32,13 @@ jobs:
           New-LocalUser -Name "BangManz" -Password $pass -FullName "BangManz" -Description "RDP User" -PasswordNeverExpires
           Add-LocalGroupMember -Group "Administrators" -Member "BangManz"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "BangManz"
-
+      - name: Sesi Online
+        run: |
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+          Write-Host "IP Tailscale di atas, StarDesk udah ke-install"
+          for ($i=0; $i -lt 36; $i++) {
+            Write-Host "Masih jalan... menit ke $($i*10)"
+            Start-Sleep -Seconds 600
       - name: StarDesk
         run: |
           Write-Host "Download StarDesk..."
@@ -70,11 +76,4 @@ jobs:
           }
           Start-Sleep -Seconds 10
           Write-Host "=== STARDESK UDAH KE-INSTALL ==="
-      - name: Sesi Online
-        run: |
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
-          Write-Host "IP Tailscale di atas, StarDesk udah ke-install"
-          for ($i=0; $i -lt 36; $i++) {
-            Write-Host "Masih jalan... menit ke $($i*10)"
-            Start-Sleep -Seconds 600
-          }
+         }
