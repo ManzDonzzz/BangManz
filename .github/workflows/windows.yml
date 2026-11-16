@@ -19,35 +19,32 @@ jobs:
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname rdp-BangManz --accept-routes
           Start-Sleep -Seconds 10
           & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" status
 
       - name: Aktifin RDP dan Bikin User
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          
+          # Hapus user lama kalo udah ada, biar gak error kalo run 2x
           if (Get-LocalUser -Name "BangManz" -ErrorAction SilentlyContinue) {
             Remove-LocalUser -Name "BangManz"
             Start-Sleep -Seconds 2
           }
+          
           $pass = ConvertTo-SecureString "${{ secrets.RDP_PASSWORD }}" -AsPlainText -Force
           New-LocalUser -Name "BangManz" -Password $pass -FullName "BangManz" -Description "RDP User" -PasswordNeverExpires
           Add-LocalGroupMember -Group "Administrators" -Member "BangManz"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "BangManz"
-      - name: Sesi Online
-        run: |
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
-          Write-Host "IP Tailscale di atas, StarDesk udah ke-install"
-          for ($i=0; $i -lt 36; $i++) {
-            Write-Host "Masih jalan... menit ke $($i*10)"
-            Start-Sleep -Seconds 600
-      - name: StarDesk
+          Write-Host "=== RDP SIAP ==="
+          Write-Host "User: BangManz"
+
+      - name: Auto Install StarDesk - Background
         run: |
           Write-Host "Download StarDesk..."
           $installer = "$env:TEMP\StarDesk.exe"
-          
-          # Pake link beneran dari lu
           Invoke-WebRequest -Uri "https://api.stardesk.net/api/v1/release/dl/1?channel=official" -OutFile $installer -UseBasicParsing
           
-          # Cek beneran ke-download apa enggak
           if (Test-Path $installer) {
             Write-Host "Ke-download! Ukuran: $((Get-Item $installer).Length) bytes"
           } else {
@@ -55,24 +52,25 @@ jobs:
             exit 1
           }
           
-          Write-Host "Install StarDesk silent..."
-          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
-          Start-Sleep -Seconds 20
+          Write-Host "Install StarDesk di background, gak pake -Wait biar gak stuck..."
+          Start-Process -FilePath $installer -ArgumentList "/S"
+          Start-Sleep -Seconds 25
+          Write-Host "Install udah jalan di background, lanjut ke sesi online..."
+
+      - name: Tahan 6 Jam + Cek StarDesk
+        run: |
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+          Write-Host "Copy IP Tailscale di atas buat login RDP"
+          Write-Host "StarDesk lagi install di belakang..."
           
-          # Coba jalanin StarDesk nya
-          $stardeskPath = Get-ChildItem -Path "C:\Program Files" -Recurse -Filter "StarDesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $stardeskPath) {
-            $stardeskPath = Get-ChildItem -Path "C:\Program Files (x86)" -Recurse -Filter "StarDesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          for ($i=0; $i -lt 36; $i++) {
+            # Cek StarDesk udah ke-install belum
+            $cek = Get-ChildItem -Path "C:\Program Files", "C:\Program Files (x86)", "$env:LOCALAPPDATA" -Recurse -Filter "StarDesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($cek) {
+              Write-Host "STARDESK UDAH KE-INSTALL di: $($cek.FullName)"
+              try { Start-Process -FilePath $cek.FullName -ErrorAction SilentlyContinue } catch {}
+            } else {
+              Write-Host "Menit ke $($i*10) - StarDesk masih install / belum ketemu..."
+            }
+            Start-Sleep -Seconds 600
           }
-          if (-not $stardeskPath) {
-            $stardeskPath = Get-ChildItem -Path "$env:LOCALAPPDATA" -Recurse -Filter "StarDesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          }
-          
-          if ($stardeskPath) {
-            Write-Host "StarDesk ketemu di: $($stardeskPath.FullName)"
-            Start-Process -FilePath $stardeskPath.FullName
-          } else {
-            Write-Host "StarDesk gak ketemu, tapi install udah jalan"
-          }
-          Start-Sleep -Seconds 10
-          Write-Host "=== STARDESK UDAH KE-INSTALL ==="
