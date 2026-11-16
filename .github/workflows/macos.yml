@@ -1,44 +1,65 @@
-name: MacOS
+name: Windows
+
 on:
   workflow_dispatch:
+
 jobs:
   rdp:
-    runs-on: macos-latest
+    runs-on: windows-latest
+    timeout-minutes: 360
     steps:
-      - name: Setup MacOS RustDesk - PAKSA NYALA
+      - name: Install Tailscale
         run: |
-          brew install --cask rustdesk firefox visual-studio-code || true
-          # Matikan dulu kalo ada yang nyangkut
-          pkill -f RustDesk || true
-          sleep 2
-          # Nyalain jadi SERVICE, bukan cuma open biasa
-          /Applications/RustDesk.app/Contents/MacOS/RustDesk --service &
-          sleep 8
-          open -a RustDesk || true
-          sleep 8
-          # Set password
-          /Applications/RustDesk.app/Contents/MacOS/RustDesk --password 123456 || true
-          echo "Cek RustDesk jalan apa gak:"
-          ps aux | grep -i rustdesk | grep -v grep || echo "GAK JALAN!"
-          echo "Cek port 21118:"
-          lsof -i :21118 || netstat -an | grep 21118 || echo "PORT MASIH KETUTUP!"
+          Invoke-WebRequest -Uri https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe -OutFile tailscale-setup.exe
+          Start-Process -FilePath .\tailscale-setup.exe -ArgumentList "/quiet" -Wait
+          Start-Sleep -Seconds 30
 
-      - name: Tailscale + ID RustDesk
+      - name: Login Tailscale
         run: |
-          brew install tailscale
-          export PATH="/opt/homebrew/bin:$PATH"
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH
-          sudo brew services start tailscale
-          sleep 10
-          sudo /opt/homebrew/bin/tailscale up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=macos-rdp --accept-routes
-          echo "===== INI YANG LU COPY ====="
-          /opt/homebrew/bin/tailscale ip -4
-          echo "--- ID RUSTDESK ASLI ---"
-          # Cari file ID nya dimana aja
-          find ~/Library -name "*.toml" 2>/dev/null | head -20
-          cat ~/Library/Application\ Support/RustDesk/RustDesk2.toml 2>/dev/null || cat ~/Library/Application\ Support/com.carriez.RustDesk/config/RustDesk2.toml 2>/dev/null || echo "File ID belum kebikin, pake IP aja"
-          echo "PASSWORD: 123456"
-          echo "=========================="
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname rdp-BangManz --accept-routes
+          Start-Sleep -Seconds 10
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
 
+      - name: Aktifin RDP dan Bikin User
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          if (Get-LocalUser -Name "BangManz" -ErrorAction SilentlyContinue) {
+            Remove-LocalUser -Name "BangManz"
+            Start-Sleep -Seconds 2
+          }
+          $pass = ConvertTo-SecureString "${{ secrets.RDP_PASSWORD }}" -AsPlainText -Force
+          New-LocalUser -Name "BangManz" -Password $pass -FullName "BangManz" -Description "RDP User" -PasswordNeverExpires
+          Add-LocalGroupMember -Group "Administrators" -Member "BangManz"
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "BangManz"
+
+      - name: Cek CPU dan GPU
+        run: |
+          Write-Host "=== CPU ==="
+          Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed | Format-List
+          Write-Host "=== GPU ==="
+          Get-CimInstance Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion | Format-List
+          Write-Host "=== RAM ==="
+          Get-CimInstance Win32_ComputerSystem | Select-Object TotalPhysicalMemory | Format-List
+          Write-Host "Kalo GPU nya tulisan Microsoft Basic Display Adapter, artinya GAK ADA GPU beneran"
+      - name: Install Aplikasi Windows Normal
+        run: |
+          Write-Host "Install aplikasi pake winget..."
+          
+          # Ini yang gratis dan langsung jalan
+          winget install --id Google.Chrome -e --accept-source-agreements --accept-package-agreements
+          winget install --id 7zip.7zip -e --accept-source-agreements --accept-package-agreements
+          winget install --id VideoLAN.VLC -e --accept-source-agreements --accept-package-agreements
+          winget install --id Valve.Steam -e --accept-source-agreements --accept-package-agreements
+          winget install --id Discord.Discord -e --accept-source-agreements --accept-package-agreements
+          
+          Write-Host "=== UDAH KE-INSTALL ==="
+          Write-Host "Chrome, 7-Zip, VLC, Steam, Discord"
+          Write-Host "Wallpaper Engine harus lu install dari dalam Steam, soalnya dia berbayar"
       - name: Tahan 6 Jam
-        run: sleep 21600
+        run: |
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+          for ($i=0; $i -lt 36; $i++) {
+            Write-Host "Masih jalan... menit ke $($i*10)"
+            Start-Sleep -Seconds 600
+          }
