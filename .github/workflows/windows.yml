@@ -17,7 +17,9 @@ jobs:
       - name: Login Tailscale
         run: |
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname rdp-BangManz
-
+      - name: StarDesk
+        run: |
+          & "https://api.stardesk.net/api/v1/release/dl/1?channel=official"
       - name: Aktifin RDP dan Bikin User
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
