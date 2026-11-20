@@ -39,24 +39,6 @@ jobs:
           Write-Host "=== RDP SIAP ==="
           Write-Host "User: BangManz"
 
-      - name: Auto Install StarDesk - Background
-        run: |
-          Write-Host "Download StarDesk..."
-          $installer = "$env:TEMP\StarDesk.exe"
-          Invoke-WebRequest -Uri "https://api.stardesk.net/api/v1/release/dl/1?channel=official" -OutFile $installer -UseBasicParsing
-          
-          if (Test-Path $installer) {
-            Write-Host "Ke-download! Ukuran: $((Get-Item $installer).Length) bytes"
-          } else {
-            Write-Host "GAGAL DOWNLOAD!"
-            exit 1
-          }
-          
-          Write-Host "Install StarDesk di background, gak pake -Wait biar gak stuck..."
-          Start-Process -FilePath $installer -ArgumentList "/S"
-          Start-Sleep -Seconds 25
-          Write-Host "Install udah jalan di background, lanjut ke sesi online..."
-
       - name: Tahan 6 Jam + Cek StarDesk
         run: |
           & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
